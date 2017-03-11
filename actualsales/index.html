@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Compre Já</title>
+        <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" rel="stylesheet">
+        <script src="https://code.jquery.com/jquery-1.12.4.min.js"></script>
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.mask/1.14.10/jquery.mask.js"></script>
+        <script type="text/javascript">
+            var baseUrl = "http://localhost/actualsales/app/";
+        </script> 
+    </head>
+    <body>
+        <div class="container">
+            <div class="row" style="margin:30px 0">
+                <div class="col-lg-3">
+                    <img src="img/logo.png" class="img-thumbnail">
+                </div>
+                <div class="col-lg-9">
+                    <h3>Nome do Produto</h3>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-lg-6" id="form-container">
+
+                    <form id="step_1" class="form-step"  method="POST">
+                    <input type='hidden' name='token' id='token' value='f42384ec9f1d036e4228a3181860ef49'>
+                        <div class="panel panel-info">
+                            <div class="panel-heading">
+                                <div class="panel-title">
+                                    Preencha seus dados para receber contato
+                                </div>
+                            </div>
+                            <div class="panel-body">
+                                <fieldset>
+                                    <div class="row form-group">
+                                        <div class="col-lg-6">
+                                            <label>Nome Completo</label>
+                                            <input class="form-control just-letters" type="text" name="nome" id="nome">
+                                        </div>
+
+                                        <div class="col-lg-6">
+                                            <label>Data de Nascimento</label>
+                                            <input class="form-control data" type="text" name="data_nascimento" id="data_nascimento">
+                                        </div>
+                                    </div>
+
+                                    <div class="row form-group">
+                                        <div class="col-lg-6">
+                                            <label>Email</label>
+                                            <input class="form-control" type="text" name="email" id="email">
+                                        </div>
+
+                                        <div class="col-lg-6">
+                                            <label>Telefone</label>
+                                            <input class="form-control telefone" type="text" name="telefone" id="telefone">
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <button id="btn_step_1" type="submit" class="btn btn-lg btn-info next-step">Próximo Passo</button>
+                                    </div>
+                                </fieldset>
+                            </div>
+                        </div>
+                    </form>
+
+                    <form id="step_2" class="form-step" style="display:none" method="POST">
+                        <div class="panel panel-info">
+                            <div class="panel-heading">
+                                <div class="panel-title">
+                                    Preencha seus dados para receber contato
+                                </div>
+                            </div>
+                            <div class="panel-body">
+                                <fieldset>
+                                    <div class="row form-group">
+                                        <div class="col-lg-6">
+                                        <label>Região</label>
+                                            <select class="form-control" name="codigo_regiao" id="codigo_regiao" onchange ="carregaUnidade($(this).val());">
+                                                <option value="">Selecione a sua região</option>
+                                            </select>
+                                        </div>
+
+                                        <div class="col-lg-6">
+                                            <label>Unidade</label>
+                                            <select class="form-control" name="codigo_unidade" id="codigo_unidade">
+                                                <option value="">Selecione a unidade mais próxima</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <button type="button" id="step_2" class="btn btn-lg btn-info next-step" onclick="gravaInformacoes();">Enviar</button>
+                                    </div>
+                                </fieldset>
+                            </div>
+                        </div>
+                    </form>
+
+                    <div id="step_sucesso" class="form-step" style="display:none">
+                        <div class="panel panel-info">
+                            <div class="panel-heading">
+                                <div class="panel-title">
+                                    Obrigado pelo cadastro!
+                                </div>
+                            </div>
+                            <div class="panel-body">
+                                Em breve você receberá uma ligação com mais informações!
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <h1>Chamada interessante para o produto</h1>
+                    <h2>Mais uma informação relevante</h2>
+                </div>
+            </div>
+        </div>
+        <script>
+            $(function () {
+
+                // adicionaMascaras();
+                carregaRegiao();
+
+                jQuery('.just-number').keyup(function() {
+                    just_number(this);
+                });
+
+                jQuery('.just-letters').keyup(function() {
+                    just_letters(this);
+                });
+
+                 jQuery('.data').keyup(function() {
+                    formatar_data();
+                });
+
+                jQuery('.telefone').each( function(){
+                    if(!jQuery(this).hasClass('format-phone')){
+                        $(this).mask('(99)9999-99999').addClass('format-phone');
+                    }
+                });
+
+                function setup_date() {
+                    jQuery('.data').mask("99/99/9999");
+                }
+
+                if($("codigo_regiao") != '' && $("codigo_regiao").length > 0){
+                    carregaUnidade();
+                }
+
+                $('#btn_step_1').click(function (event) {
+                    event.preventDefault();
+
+                    var form_step = $("#step_1").serialize();
+
+                    $.ajax({
+                        type: "POST",
+                        url: baseUrl + "home/gravaPrimeiroPasso/"  + Math.random(),
+                        data: form_step,
+                        dataType: "json",
+                        success: function(retorno) {
+
+                            if(retorno == 1){
+                                // $('#step_1 button.next-step').parents('#btn_step_1').hide().next().show();
+                                $('#step_1').hide();
+                                $('#step_2').show();
+                            }
+                            else{
+                                var array = $.map(retorno, function(msg, campo) {
+                                    $("#step_1 input#"+campo).parent().addClass("has-error");
+
+                                    $("#step_1 input#"+campo).parent().append("<div class=\'class_error\' >"+msg+"</div>");
+                                });
+                            }
+                        },
+                        error: function(erro) { 
+                        }
+                    });
+                });
+            });
+
+            function carregaRegiao(){
+                $.ajax({
+                    type: "POST",
+                    url: baseUrl + "home/carregaRegiao/"  + Math.random(),
+                    dataType: "json",
+                    success: function(retorno) {
+                        var array = $.map(retorno, function(nome, codigo) {
+                            $('#codigo_regiao').append($('<option>', { 
+                                value: codigo,
+                                text : nome 
+                            }));
+                        });
+
+                    },
+                    error: function(erro) { 
+                    }
+                });
+            }
+
+            function carregaUnidade(){
+                var codigo_regiao = $('#codigo_regiao').val();
+                $.ajax({
+                    type: "POST",
+                    url: baseUrl + "home/carregaUnidade/"  + Math.random(),
+                    data: {codigo_regiao : codigo_regiao},
+                    dataType: "json",
+                    success: function(retorno) {
+                        $("#codigo_unidade").find('option').remove()
+                        $("#codigo_unidade").append("<option value=''>Selecione a unidade mais próxima</option>");
+
+                        $.each(retorno, function(codigo,nome){
+                            $("#codigo_unidade").append("<option value='"+codigo+"'>"+nome+"</option>");
+                        });                       
+                    },
+                    error: function(erro) { 
+                    }
+                });
+            }
+
+            function gravaInformacoes(){
+
+                    var form_step1 = $('#step_1').serialize();
+                    var form_step2 = $('#step_2').serialize();
+                    var form_step = form_step1 + '&' + form_step2;
+
+                    $.ajax({
+                        type: "POST",
+                        url: baseUrl + "home/gravaSegundoPasso/"  + Math.random(),
+                        data: form_step,
+                        dataType: "json",
+                        success: function(retorno) {
+
+                            if(retorno == 1){
+                                $('#step_sucesso').show();
+                                $('#step_1').hide();
+                                $('#step_2').hide();
+                            }
+                            else{
+                                var array = $.map(retorno, function(msg, campo) {
+
+                                    $("#step_2 select#"+campo).parent().addClass("has-error");
+
+                                    $("#step_2 select#"+campo).parent().append("<div class=\'class_error\' >"+msg+"</div>");
+                                });
+                            }
+                        },
+                        error: function(erro) { 
+                        }
+                    });
+            }
+
+            function just_letters(elemento){
+                elemento.value=elemento.value.replace(/\d/g,'');
+            }
+
+            function just_number(elemento){
+                elemento.value=elemento.value.replace(/\D/g,'');
+            }
+
+            function formatar_data() {
+                jQuery('.data').mask("99/99/9999");
+            }
+        </script>
+}
+    </body>
+</html>
