@@ -242,7 +242,7 @@
                             }
                             else{
                                 var array = $.map(retorno, function(msg, campo) {
-
+                                    alert(msg);
                                     $("#step_2 select#"+campo).parent().addClass("has-error");
 
                                     $("#step_2 select#"+campo).parent().append("<div class=\'class_error\' >"+msg+"</div>");

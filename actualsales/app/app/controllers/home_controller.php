@@ -97,15 +97,8 @@ class HomeController extends AppController {
             echo json_encode($erro);
             exit;
         }
-        
 
-        // if ($this->Cadastro->incluir($dados)) { 
-            echo 1;
-        // }  
-        // else{
-        //     echo json_encode($this->Cadastro->validationErrors);
-        // }
-        
+        echo 1;       
     }
 
     function validaPalavras($nome){
@@ -126,7 +119,6 @@ class HomeController extends AppController {
         $consulta = $this->Regiao->find("list", array('fields' => array('Regiao.codigo', 'Regiao.nome')));
 
         echo json_encode($consulta);
-
     }
 
     function carregaUnidade(){
@@ -137,7 +129,12 @@ class HomeController extends AppController {
 
         $consulta = $this->Unidade->find("list", array('fields' => array('Unidade.codigo', 'Unidade.nome'), 'conditions' => array('codigo_regiao' => $codigo_regiao)));
 
-        echo json_encode($consulta);
+        if(empty($consulta)){
+            echo json_encode(array('' => 'INDISPONÍVEL'));
+        }
+        else{
+            echo json_encode($consulta);
+        }
 
     }
 
@@ -160,12 +157,21 @@ class HomeController extends AppController {
         $score = $this->CalculaScore($dados);
 
         $dados['Cadastro']['score'] = $score;
+        
+        $dados_api = $this->enviarDadosApi($dados);
 
-        if ($this->Cadastro->incluir($dados)) { 
-            echo 1;
-        }  
+        if($dados_api->success== true){
+        
+            if ($this->Cadastro->incluir($dados)) { 
+                echo 1;
+            }  
+            else{
+                echo json_encode($this->Cadastro->validationErrors);
+            }
+        }
         else{
-            echo json_encode($this->Cadastro->validationErrors);
+            $retorno = array('Cadastro' =>$dados_api->message);
+            echo json_encode($retorno);
         }
     }
 
@@ -219,6 +225,56 @@ class HomeController extends AppController {
 
         $resultado_score = $pontuacao - $calculo_score;
         return $resultado_score;
+
+    }
+
+    function enviarDadosApi($dados){
+
+        $nome = (is_string($dados['Cadastro']['nome']))? $dados['Cadastro']['nome']: strval($dados['Cadastro']['nome']);
+        $email = (is_string($dados['Cadastro']['email']))? $dados['Cadastro']['email']: strval($dados['Cadastro']['email']);
+        
+        $converte_telefone = (is_string($dados['Cadastro']['telefone']))? $dados['Cadastro']['telefone']: strval($dados['Cadastro']['telefone']);
+        $telefone = str_replace(' ', '', (str_replace('-', '', (str_replace(')', '',(str_replace('(', '', $converte_telefone)))))));
+
+        $data_nascimento = date('Y-m-d', strtotime($dados['Cadastro']['data_nascimento']));
+
+        $consulta_regiao = $this->Regiao->find('first', array('conditions' => array('codigo' => $dados['Cadastro']['codigo_regiao'])));
+        $regiao = $consulta_regiao['Regiao']['nome'];
+
+        if(empty($dados['Cadastro']['codigo_unidade']))
+        {
+            $unidade = 'INDISPONÍVEL';
+        }
+        else{
+            $consulta_unidade = $this->Unidade->find('first', array('conditions' => array('codigo' => $dados['Cadastro']['codigo_unidade'])));
+            $unidade = (empty($consulta_unidade['Unidade']['nome']))? 'INDISPONÍVEL': $consulta_unidade['Unidade']['nome'];
+        }
+
+        $score = (is_string($dados['Cadastro']['score']))? $dados['Cadastro']['score']: strval($dados['Cadastro']['score']);
+        $token = (is_string($dados['Cadastro']['token']))? $dados['Cadastro']['token']: strval($dados['Cadastro']['token']);
+
+        $data = array(
+            'nome' => $nome,
+            'email' => $email,
+            'telefone' => $telefone,
+            'regiao' => $regiao,
+            'unidade' => $unidade,
+            'data_nascimento' => $data_nascimento,
+            'score' => $score,
+            'token' => $token
+        );
+
+        $cURL = curl_init();
+        curl_setopt( $cURL, CURLOPT_URL, "http://api.actualsales.com.br/join-asbr/ti/lead" );
+        curl_setopt( $cURL, CURLOPT_POST, true );
+        curl_setopt( $cURL, CURLOPT_POSTFIELDS, http_build_query( $data ) );
+        curl_setopt( $cURL, CURLOPT_RETURNTRANSFER, true );
+        $retorno = curl_exec( $cURL );
+        curl_close($cURL);
+
+        $analisa_retorno = json_decode($retorno);
+
+        return $analisa_retorno;
 
     }
 
